@@ -100,13 +100,16 @@ function App() {
   const sendWeatherNotification = () => {
     if (weather) {
       const temp = unit === "C" ? weather.temp_c : weather.temp_f;
-      // Création de la notification native
-      new Notification(`Météo à ${weather.name} 🌍`, {
+      
+      // On force le type "any" pour que TypeScript accepte "vibrate" sans erreur
+      const notifOptions: any = {
         body: `Il fait actuellement ${Math.round(temp)}°${unit}. Condition : ${weather.condition}.`,
-        icon: weather.icon, // L'icône de la météo s'affichera dans la notification !
-        badge: '/icon-192x192.png', // L'icône de ton app
-        vibrate: [200, 100, 200] // Fait vibrer le téléphone
-      });
+        icon: weather.icon,
+        badge: '/icon-192x192.png',
+        vibrate: [200, 100, 200]
+      };
+
+      new Notification(`Météo à ${weather.name} 🌍`, notifOptions);
     } else {
       new Notification("Météo Pro prête ! 🌤️", {
         body: "Les notifications sont activées. Recherchez une ville pour faire un test.",
