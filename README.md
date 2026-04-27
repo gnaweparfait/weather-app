@@ -28,6 +28,8 @@ Une application météo moderne développée avec **React + TypeScript + Vite**.
 ---
 
 ## 📸 Aperçu
+<img width="1626" height="972" alt="image" src="https://github.com/user-attachments/assets/7ff7f9ca-6bae-4183-ad51-f30db33731c5" />
+
 
 Ajoute ici une capture de ton app
 
