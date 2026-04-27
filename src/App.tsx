@@ -101,15 +101,16 @@ function App() {
       const data = await res.json();
 
       if (data.error) {
-        setError("Ville introuvable.");
+        setError("Ville introuvable. Veuillez vérifier l'orthographe.");
         return;
       }
 
-      const hourlyData = data.forecast.forecastday[0].hour.map((h: any) => ({
-        time: h.time.split(" ")[1],
+      // 🔴 CORRECTION ICI : Sécurisation du tableau de prévisions
+      const hourlyData = data.forecast?.forecastday?.[0]?.hour?.map((h: any) => ({
+        time: h.time?.split(" ")?.[1] || "00:00",
         temp_c: Math.round(h.temp_c),
         temp_f: Math.round(h.temp_f),
-      }));
+      })) || [];
 
       setWeather({
         name: data.location.name,
@@ -127,7 +128,7 @@ function App() {
 
       setCity("");
     } catch {
-      setError("Erreur de connexion.");
+      setError("Erreur de connexion au serveur.");
     } finally {
       setLoading(false);
     }
@@ -200,7 +201,7 @@ function App() {
           .card { background: var(--bg-card); border-radius: 20px; padding: 2rem; box-shadow: var(--shadow); border: 1px solid var(--border-color); transition: all 0.3s; }
           
           .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-          .header h1 { font-size: 1.5rem; font-weight: 700; display: flex; alignItems: center; gap: 0.5rem; }
+          .header h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
           .btn-icon { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
           .btn-icon:hover { border-color: var(--primary); }
 
@@ -211,17 +212,18 @@ function App() {
           .search-btn:hover { background: var(--primary-hover); }
 
           /* Dropdown Suggestions */
-          .suggestions-box { position: absolute; top: 110%; left: 0; right: 80px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--shadow); z-index: 10; overflow: hidden; }
+          .suggestions-box { position: absolute; top: 110%; left: 0; right: 80px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--shadow); z-index: 10; overflow: hidden; padding: 0; margin: 0; list-style: none; }
           .suggestion-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: background 0.2s; }
           .suggestion-item:last-child { border-bottom: none; }
           .suggestion-item:hover { background: var(--input-bg); }
 
           .weather-main { text-align: center; position: relative; }
-          .fav-btn { position: absolute; top: 0; right: 0; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+          .fav-btn { position: absolute; top: 0; right: 0; background: none; border: none; font-size: 1.5rem; cursor: pointer; transition: transform 0.2s; }
+          .fav-btn:hover { transform: scale(1.1); }
           .weather-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
           .weather-subtitle { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; }
-          .weather-icon { width: 90px; height: 90px; margin: 0 auto; }
-          .temp-huge { font-size: 4rem; font-weight: 800; line-height: 1; margin: 0.5rem 0; }
+          .weather-icon { width: 90px; height: 90px; margin: 0 auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+          .temp-huge { font-size: 4rem; font-weight: 800; line-height: 1; margin: 0.5rem 0; letter-spacing: -2px; }
           .condition-text { font-size: 1.1rem; font-weight: 500; text-transform: capitalize; margin-bottom: 1.5rem; }
 
           .stats-flex { display: flex; justify-content: space-around; border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-bottom: 2rem; }
@@ -231,11 +233,12 @@ function App() {
 
           .chart-container { width: 100%; height: 200px; margin-top: 1rem; }
 
-          .fav-list { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+          .fav-list { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; padding: 0; margin: 0; }
           .fav-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s; }
           .fav-item:hover { border-color: var(--primary); }
           .fav-name { font-weight: 600; }
-          .fav-delete { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.2rem; }
+          .fav-delete { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.2rem; transition: transform 0.2s; }
+          .fav-delete:hover { transform: scale(1.1); }
         `}
       </style>
 
@@ -245,10 +248,10 @@ function App() {
           <div className="header">
             <h1>☁️ Météo Pro</h1>
             <div style={{ display: "flex", gap: "10px" }}>
-              <button className="btn-icon" onClick={toggleUnit}>
+              <button className="btn-icon" onClick={toggleUnit} title="Changer l'unité">
                 {unit === "C" ? "°F" : "°C"}
               </button>
-              <button className="btn-icon" onClick={toggleTheme}>
+              <button className="btn-icon" onClick={toggleTheme} title="Changer le thème">
                 {isDarkMode ? "☀️" : "🌙"}
               </button>
             </div>
@@ -282,19 +285,23 @@ function App() {
             )}
           </div>
 
-          {error && <p style={{ color: "#ef4444", marginBottom: "1rem" }}>{error}</p>}
-          {loading && <p style={{ color: "var(--text-secondary)", textAlign: "center" }}>Recherche en cours...</p>}
+          {error && <p style={{ color: "#ef4444", marginBottom: "1rem", fontWeight: "500" }}>{error}</p>}
+          {loading && <p style={{ color: "var(--text-secondary)", textAlign: "center", fontStyle: "italic" }}>Recherche en cours...</p>}
 
           {weather && !loading && (
             <div className="weather-main">
-              <button className="fav-btn" onClick={() => toggleFavorite(weather.name)}>
+              <button 
+                className="fav-btn" 
+                onClick={() => toggleFavorite(weather.name)}
+                title={favorites.includes(weather.name) ? "Retirer des favoris" : "Ajouter aux favoris"}
+              >
                 {favorites.includes(weather.name) ? "⭐" : "☆"}
               </button>
 
               <h2 className="weather-title">{weather.name}</h2>
               <p className="weather-subtitle">{weather.country}</p>
               
-              <img src={weather.icon} alt="Météo" className="weather-icon" />
+              <img src={weather.icon} alt={weather.condition} className="weather-icon" />
               <div className="temp-huge">{Math.round(currentTemp!)}°{unit}</div>
               <p className="condition-text">{weather.condition}</p>
 
@@ -314,28 +321,32 @@ function App() {
               </div>
 
               {/* GRAPHIQUE RECHARTS */}
-              <h3 style={{ textAlign: "left", fontSize: "1rem", marginBottom: "1rem", color: "var(--text-secondary)" }}>
-                Prévisions aujourd'hui
-              </h3>
-              <div className="chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weather.forecast} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="time" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: "var(--bg-card)", borderRadius: "8px", border: "1px solid var(--border-color)", color: "var(--text-main)" }}
-                      formatter={(value: any) => [`${value ?? 0}°${unit}`, 'Température']}
-                    />
-                    <Area type="monotone" dataKey={chartDataKey} stroke="var(--primary)" fillOpacity={1} fill="url(#colorTemp)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              {weather.forecast.length > 0 && (
+                <>
+                  <h3 style={{ textAlign: "left", fontSize: "1rem", marginBottom: "1rem", color: "var(--text-secondary)" }}>
+                    Prévisions aujourd'hui
+                  </h3>
+                  <div className="chart-container">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={weather.forecast} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="time" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
+                        <YAxis stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: "var(--bg-card)", borderRadius: "8px", border: "1px solid var(--border-color)", color: "var(--text-main)" }}
+                          formatter={(value: any) => [`${value ?? 0}°${unit}`, 'Température']}
+                        />
+                        <Area type="monotone" dataKey={chartDataKey} stroke="var(--primary)" fillOpacity={1} fill="url(#colorTemp)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -357,8 +368,9 @@ function App() {
                   <span className="fav-name">{fav}</span>
                   <button 
                     className="fav-delete" 
+                    title="Supprimer"
                     onClick={(e) => {
-                      e.stopPropagation(); // Évite de déclencher fetchWeather quand on clique sur supprimer
+                      e.stopPropagation();
                       toggleFavorite(fav);
                     }}
                   >
