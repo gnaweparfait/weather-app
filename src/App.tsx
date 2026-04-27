@@ -330,7 +330,7 @@ function App() {
                     <YAxis stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
                     <Tooltip 
                       contentStyle={{ backgroundColor: "var(--bg-card)", borderRadius: "8px", border: "1px solid var(--border-color)", color: "var(--text-main)" }}
-                      formatter={(value: number) => [`${value}°${unit}`, 'Température']}
+                      formatter={(value: any) => [`${value ?? 0}°${unit}`, 'Température']}
                     />
                     <Area type="monotone" dataKey={chartDataKey} stroke="var(--primary)" fillOpacity={1} fill="url(#colorTemp)" />
                   </AreaChart>
