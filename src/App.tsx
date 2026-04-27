@@ -39,6 +39,11 @@ function App() {
   const [unit, setUnit] = useState<"C" | "F">("C");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // État pour savoir si les notifications sont acceptées
+  const [notifPermission, setNotifPermission] = useState(
+    "Notification" in window ? Notification.permission : "default"
+  );
 
   const apiKey = "cc7c674939a14fcaac7172742262704";
   const searchRef = useRef<HTMLDivElement>(null);
@@ -69,6 +74,46 @@ function App() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // --- LOGIQUE DES NOTIFICATIONS 🔔 ---
+  const handleNotification = () => {
+    if (!("Notification" in window)) {
+      alert("Votre navigateur ne supporte pas les notifications.");
+      return;
+    }
+
+    if (Notification.permission === "granted") {
+      sendWeatherNotification();
+    } else if (Notification.permission !== "denied") {
+      // Demande la permission à l'utilisateur
+      Notification.requestPermission().then((permission) => {
+        setNotifPermission(permission);
+        if (permission === "granted") {
+          sendWeatherNotification();
+        }
+      });
+    } else {
+      alert("Vous avez bloqué les notifications. Veuillez les réactiver dans les paramètres de votre navigateur.");
+    }
+  };
+
+  const sendWeatherNotification = () => {
+    if (weather) {
+      const temp = unit === "C" ? weather.temp_c : weather.temp_f;
+      // Création de la notification native
+      new Notification(`Météo à ${weather.name} 🌍`, {
+        body: `Il fait actuellement ${Math.round(temp)}°${unit}. Condition : ${weather.condition}.`,
+        icon: weather.icon, // L'icône de la météo s'affichera dans la notification !
+        badge: '/icon-192x192.png', // L'icône de ton app
+        vibrate: [200, 100, 200] // Fait vibrer le téléphone
+      });
+    } else {
+      new Notification("Météo Pro prête ! 🌤️", {
+        body: "Les notifications sont activées. Recherchez une ville pour faire un test.",
+        badge: '/icon-192x192.png',
+      });
+    }
+  };
 
   // Autocomplétion
   const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +244,6 @@ function App() {
             -webkit-font-smoothing: antialiased;
           }
 
-          /* Animations */
           @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -209,118 +253,44 @@ function App() {
             to { opacity: 1; }
           }
 
-          .app-container { 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 2rem 1rem; 
-          }
+          .app-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; }
+          .dashboard-grid { width: 100%; max-width: 1100px; display: grid; grid-template-columns: 1fr; gap: 2rem; animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+          @media (min-width: 850px) { .dashboard-grid { grid-template-columns: 1.2fr 0.8fr; } }
 
-          .dashboard-grid { 
-            width: 100%; 
-            max-width: 1100px; 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 2rem; 
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          }
-          @media (min-width: 850px) { 
-            .dashboard-grid { grid-template-columns: 1.2fr 0.8fr; } 
-          }
-
-          /* Effet Glassmorphism */
-          .glass-card { 
-            background: var(--glass-bg); 
-            backdrop-filter: blur(16px); 
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 28px; 
-            padding: 2.5rem; 
-            box-shadow: var(--shadow); 
-            border: 1px solid var(--glass-border); 
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-          }
+          .glass-card { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 28px; padding: 2.5rem; box-shadow: var(--shadow); border: 1px solid var(--glass-border); transition: transform 0.3s ease, box-shadow 0.3s ease; }
           
           .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
           .header h1 { font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; letter-spacing: -0.5px; }
           
           .controls { display: flex; gap: 0.8rem; }
-          .btn-icon { 
-            background: var(--widget-bg); 
-            border: 1px solid var(--glass-border); 
-            color: var(--text-main); 
-            width: 42px; height: 42px; 
-            border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-weight: 600; font-size: 1.1rem;
-            transition: all 0.2s ease; 
-          }
+          .btn-icon { background: var(--widget-bg); border: 1px solid var(--glass-border); color: var(--text-main); width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 600; font-size: 1.1rem; transition: all 0.2s ease; }
           .btn-icon:hover { transform: scale(1.05); background: var(--primary); color: white; border-color: var(--primary); }
+          .btn-icon.active-notif { background: #10b981; color: white; border-color: #10b981; }
 
-          /* Barre de recherche moderne */
           .search-container { position: relative; display: flex; gap: 0.5rem; margin-bottom: 2rem; }
-          .search-input { 
-            flex: 1; padding: 1.2rem 1.5rem; 
-            border-radius: 99px; 
-            border: 1px solid var(--glass-border); 
-            background: var(--widget-bg); 
-            color: var(--text-main); 
-            outline: none; font-size: 1.05rem; 
-            transition: all 0.3s ease; 
-            font-family: inherit;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-          }
+          .search-input { flex: 1; padding: 1.2rem 1.5rem; border-radius: 99px; border: 1px solid var(--glass-border); background: var(--widget-bg); color: var(--text-main); outline: none; font-size: 1.05rem; transition: all 0.3s ease; font-family: inherit; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
           .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); }
-          .search-btn { 
-            background: var(--primary); color: white; 
-            border: none; width: 56px; height: 56px; 
-            border-radius: 50%; cursor: pointer; 
-            font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-          }
+          .search-btn { background: var(--primary); color: white; border: none; width: 56px; height: 56px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
           .search-btn:hover { background: var(--primary-hover); transform: scale(1.05); }
 
-          /* Dropdown Suggestions */
-          .suggestions-box { 
-            position: absolute; top: calc(100% + 10px); left: 0; right: 65px; 
-            background: var(--glass-bg); backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border); border-radius: 20px; 
-            box-shadow: var(--shadow); z-index: 20; overflow: hidden; list-style: none; animation: fadeIn 0.2s;
-          }
+          .suggestions-box { position: absolute; top: calc(100% + 10px); left: 0; right: 65px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; box-shadow: var(--shadow); z-index: 20; overflow: hidden; list-style: none; animation: fadeIn 0.2s; }
           .suggestion-item { padding: 1rem 1.5rem; cursor: pointer; border-bottom: 1px solid var(--glass-border); transition: background 0.2s; }
           .suggestion-item:last-child { border-bottom: none; }
           .suggestion-item:hover { background: var(--widget-bg); padding-left: 1.8rem; }
 
-          /* Météo Principale */
           .weather-main { text-align: center; position: relative; animation: fadeIn 0.5s ease; }
-          .fav-btn-main { 
-            position: absolute; top: 0; right: 0; 
-            background: var(--widget-bg); border: 1px solid var(--glass-border); 
-            width: 45px; height: 45px; border-radius: 50%;
-            font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-          }
+          .fav-btn-main { position: absolute; top: 0; right: 0; background: var(--widget-bg); border: 1px solid var(--glass-border); width: 45px; height: 45px; border-radius: 50%; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
           .fav-btn-main:hover { transform: scale(1.15); }
           
           .weather-title { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.2rem; }
           .weather-subtitle { color: var(--text-secondary); font-size: 1rem; font-weight: 500; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
-          
           .weather-icon { width: 120px; height: 120px; margin: 0 auto; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.15)); transition: transform 0.3s; }
           .weather-icon:hover { transform: scale(1.05) rotate(2deg); }
-          
           .temp-huge { font-size: 5.5rem; font-weight: 800; line-height: 1; margin: 1rem 0; letter-spacing: -3px; color: var(--text-main); }
           .condition-text { font-size: 1.3rem; font-weight: 600; text-transform: capitalize; margin-bottom: 2.5rem; color: var(--primary); }
 
-          /* Widgets Météo */
           .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2.5rem; }
-          .stat-widget { 
-            background: var(--widget-bg); 
-            border: 1px solid var(--glass-border); 
-            padding: 1.2rem; border-radius: 20px; 
-            display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-            transition: transform 0.2s;
-          }
+          .stat-widget { background: var(--widget-bg); border: 1px solid var(--glass-border); padding: 1.2rem; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: transform 0.2s; }
           .stat-widget:hover { transform: translateY(-3px); }
           .stat-icon { font-size: 1.5rem; }
           .stat-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px; }
@@ -329,56 +299,17 @@ function App() {
           .chart-container { width: 100%; height: 220px; margin-top: 1rem; }
           .chart-title { text-align: left; font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; }
 
-          /* Favoris */
           .fav-list { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
-          .fav-item { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 1.2rem 1.5rem; 
-            background: var(--widget-bg); border: 1px solid var(--glass-border); 
-            border-radius: 20px; cursor: pointer; 
-            transition: all 0.3s ease; 
-          }
+          .fav-item { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background: var(--widget-bg); border: 1px solid var(--glass-border); border-radius: 20px; cursor: pointer; transition: all 0.3s ease; }
           .fav-item:hover { transform: translateX(5px); border-color: var(--primary); background: var(--glass-bg); }
           .fav-info { display: flex; align-items: center; gap: 1rem; }
           .fav-pin { font-size: 1.2rem; }
           .fav-name { font-weight: 700; font-size: 1.1rem; }
-          .fav-delete { 
-            background: rgba(239, 68, 68, 0.1); border: none; color: #ef4444; 
-            width: 36px; height: 36px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: 1.1rem; transition: all 0.2s; 
-          }
+          .fav-delete { background: rgba(239, 68, 68, 0.1); border: none; color: #ef4444; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; transition: all 0.2s; }
           .fav-delete:hover { background: #ef4444; color: white; transform: rotate(10deg); }
 
-          /* Signature Footer */
-          .developer-signature {
-            margin-top: 3rem;
-            padding: 1rem 2rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 99px;
-            color: var(--text-main);
-            font-size: 0.95rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            animation: slideUp 0.8s ease forwards;
-            animation-delay: 0.2s;
-            opacity: 0;
-          }
-          .dev-badge {
-            background: var(--primary);
-            color: white;
-            padding: 0.3rem 0.8rem;
-            border-radius: 99px;
-            font-size: 0.8rem;
-            font-weight: 800;
-            text-transform: uppercase;
-          }
+          .developer-signature { margin-top: 3rem; padding: 1rem 2rem; background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 99px; color: var(--text-main); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.8rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); animation: slideUp 0.8s ease forwards; animation-delay: 0.2s; opacity: 0; }
+          .dev-badge { background: var(--primary); color: white; padding: 0.3rem 0.8rem; border-radius: 99px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; }
         `}
       </style>
 
@@ -388,6 +319,14 @@ function App() {
           <div className="header">
             <h1>☁️ Météo Pro</h1>
             <div className="controls">
+              {/* BOUTON NOTIFICATION 🔔 */}
+              <button 
+                className={`btn-icon ${notifPermission === 'granted' ? 'active-notif' : ''}`} 
+                onClick={handleNotification} 
+                title="Tester les notifications"
+              >
+                🔔
+              </button>
               <button className="btn-icon" onClick={toggleUnit} title="Changer l'unité">
                 {unit === "C" ? "°F" : "°C"}
               </button>
@@ -446,7 +385,7 @@ function App() {
               <div className="temp-huge">{Math.round(currentTemp!)}°</div>
               <p className="condition-text">{weather.condition}</p>
 
-              {/* Nouveaux Widgets Météo */}
+              {/* Widgets Météo */}
               <div className="stats-grid">
                 <div className="stat-widget">
                   <span className="stat-icon">🌡️</span>
